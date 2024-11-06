@@ -3,8 +3,6 @@
 #include "WiFi.h"
 
 #include "Audio.h"
- #include <Wire.h>
- 
 
 #define I2S_DOUT 25
 

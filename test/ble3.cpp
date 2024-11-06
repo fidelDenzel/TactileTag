@@ -4,7 +4,7 @@
 #include <BLEScan.h>
 #include <Wire.h>
 
-#define buzzerPin 25
+#define buzzerPin 23
 #define TARGETDEV_1 "Slide"
 #define TARGETDEV_2 "Swing"
 #define TARGETDEV_3 "SeaSaw"
@@ -13,9 +13,6 @@
 
 int scanTime = 5; // Time for scanning BLE devices (in seconds)
 BLEScan *pBLEScan;
-
-// Buzzer connected to GPIO 25
-// const int buzzerPin = 25;
 
 // Variables to track the closest filtered device
 String closestDeviceName = "";
@@ -53,7 +50,7 @@ bool isTargetDevice(String deviceName)
 
 void loop()
 {
-  Serial.println("Scanning for BLE devices...");
+  // Serial.println("Scanning for BLE devices...");
 
   BLEScanResults foundDevices = pBLEScan->start(scanTime, false);
 
@@ -108,16 +105,16 @@ void loop()
     }
     Serial.printf("Freq = %d\n", toneFrequency);
     tone(buzzerPin, toneFrequency, 500); // Play tone for 500ms
-    // }
-    // else{
-    //   Serial.printf("within tolerance range by %d, rssi = %d\n", abs(closestRSSI - RSSI_TH), closestRSSI);
-    // }
+
   }
   else
   {
     closestDeviceName = "";
     closestRSSI = -999;
-    Serial.println("No filtered devices found.");
+    // Serial.println("No filtered devices found.");
+    Serial.println("Please enter the playground!");
+    tone(buzzerPin, 100, 500);
+    tone(buzzerPin, 10000, 500);
   }
 
   // Wait before the next scan
