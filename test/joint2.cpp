@@ -14,30 +14,21 @@
 
 #define TARGETDEV_1 "Slide"
 #define TARGETDEV_2 "Swing"
-// #define TARGETDEV_3 "SeaSaw"
+#define TARGETDEV_3 "SeaSaw"
 
 #define RSSI_TH -69
 #define RSSI_TOLERANCE 5
-#define N_EQUIPMENT 2
-#define SLIDE_IDX 0
-#define SWING_IDX 1
-// #define SEASAW_IDX 2
 
 DFRobotDFPlayerMini player; // Create the Player object
 
-int scanTime = 1; // Time for scanning BLE devices (in seconds)
+int scanTime = 3; // Time for scanning BLE devices (in seconds)
 BLEScan *pBLEScan;
 
 // Variables to track the closest filtered device
 String closestDeviceName = "";
-String closestBefore = "";
 int closestRSSI = -999;
 unsigned long time1_start = 0;
-unsigned long time2_start = 0;
 int loc_type = 0;
-int loc_before;
-int play_mode = 0;
-bool inBound = false;
 
 struct Button
 {
@@ -58,11 +49,7 @@ void IRAM_ATTR isr()
     if (button_time - last_button_time > 250)
     {
         button1.numberKeyPresses++;
-        button1.pressed = true;
-        if (inBound)
-        {
-            play_mode += 1;
-        }
+        button1.pressed ^= 1;
         last_button_time = button_time;
     }
 }
@@ -72,8 +59,7 @@ void IRAM_ATTR isr()
 bool isTargetDevice(String deviceName)
 {
     // List of target device names
-    String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
-
+    String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2, TARGETDEV_3};
     int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
     for (int i = 0; i < targetDeviceCount; i++)
     {
@@ -114,14 +100,21 @@ void setup()
 
 void loop()
 {
+
+    // Serial.println("Scanning for BLE devices...");
+    if (button1.pressed)
+    {
+        Serial.printf("Button has been pressed %d times\n", button1.pressed);
+        // button1.pressed = false;
+    }
+   
     BLEScanResults foundDevices = pBLEScan->start(scanTime, false);
 
-    // Reset closest device tracker
+    // // Reset closest device tracker
     closestRSSI = -999;
     closestDeviceName = "";
 
     // Find the closest filtered device by RSSI
-    int ctr = 0;
     for (int i = 0; i < foundDevices.getCount(); i++)
     {
         BLEAdvertisedDevice advertisedDevice = foundDevices.getDevice(i);
@@ -131,96 +124,53 @@ void loop()
         // Check if the device has a name and matches any target device name
         if (deviceName.length() > 0 && isTargetDevice(deviceName))
         {
+            Serial.print("Filtered Device: ");
+            Serial.print(deviceName);
+            Serial.print(" | RSSI: ");
+            Serial.println(rssi);
             // Check if this device is closer than the previous one
             if (rssi > closestRSSI)
             {
                 closestRSSI = rssi;
                 closestDeviceName = deviceName;
             }
-
-            ctr++;
-            if (ctr == N_EQUIPMENT)
-            {
-                break;
-            }
         }
     }
+
 
     // Output sound based on the closest filtered device
-    // Give tolerance to each RSSI value for every target device
-    Serial.printf("Mode = %d\n", play_mode);
-    int audio_delay = 0;
-    if (play_mode < 1)
+    if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
     {
-        if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
+        // Give tolerance to each RSSI value for every target device
+
+        // if (abs(closestRSSI - RSSI_TH) <= 5 && abs(closestRSSI - RSSI_TH) >= 0){
+        // Serial.print("Closest filtered device: ");
+        // Serial.print(closestDeviceName);
+        // Serial.print(" | RSSI: ");
+        // Serial.println(closestRSSI);
+        
+        if ((closestDeviceName == "Slide"))
         {
-            inBound = true;
-            Serial.printf("Are you in ");
-            if ((closestDeviceName == "Slide"))
-            {
-                loc_type = SLIDE_IDX + 1;
-                audio_delay = 2000;
-            }
-            else if ((closestDeviceName == "Swing"))
-            {
-                loc_type = SWING_IDX + 1;
-                audio_delay = 2000;
-            }
-            Serial.printf("%s\n", closestDeviceName);
-            Serial.printf("Click you necklace button if so!\n");
-            closestBefore = closestDeviceName;
+            loc_type = 1;
         }
-        else
+        else if ((closestDeviceName == "Swing"))
         {
-            // Out of Bounds (detect no esp nearby) Code
-            inBound = false;
-            Serial.printf("Out of Bounds\n");
-            loc_type = N_EQUIPMENT + 1;
-            audio_delay = 7000;
+            loc_type = 2;
         }
+        // Serial.printf("Freq = %d\n", toneFrequency);
+
+        // Wait before the next scan
+        delay(100);
     }
-    else if (play_mode >= 1)
+    else
     {
-        if (play_mode > 1)
-        {
-            if (play_mode >= 2)
-            {
-                if ((closestDeviceName.length() == 0 || closestBefore != closestDeviceName))
-                {
-                    // wait for a while to ensure player, 3000 ms to exact
-                    if ((millis() - time1_start) >= 3000)
-                    {
-                        time1_start = millis();
-                        Serial.printf("Are you not on %s anymore?\n", closestBefore);
-                        Serial.printf("Click if yes\n");
-                        Serial.printf("Please follow the sound to go back\n");
-                    }
-
-                    if (play_mode == 3)
-                    {
-                        play_mode = 0;
-                    }
-                }
-                // player can remind themselves what equipment this is
-                else if (play_mode == 3)
-                {
-                    Serial.printf("You are in %s\n", closestBefore);
-                    delay(2000);
-                    play_mode = 2;
-                }
-            }
-
-        }
-        else
-        {
-            Serial.printf("Welcome to %s\n", closestDeviceName);
-            play_mode++;
-        }
+        // Out of Bounds Code
+        closestDeviceName = "";
+        closestRSSI = -999;
+        loc_type = 3;
+        // Serial.println("No filtered devices found.");
     }
+    player.play(loc_type);
+    delay(7000 - (scanTime*1000));
 
-    //     // Guide the player with speaker
-    //     Serial.printf("%s\n", closestDeviceName);
-    //     player.play(loc_type);
-    //     // Wait for audio
-    //     delay(audio_delay - (scanTime * 1000));
 }

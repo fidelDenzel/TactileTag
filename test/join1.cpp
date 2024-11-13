@@ -1,14 +1,21 @@
 #include <Arduino.h>
+//  #include <WiFi.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEScan.h>
 #include <Wire.h>
 #include "DFRobotDFPlayerMini.h"
+// #include <driver/i2s.h>
+#include <math.h>
 
 #define buzzerPin 23
+#define BUTT_PIN 35
+#define LED_PIN 13
+
 #define TARGETDEV_1 "Slide"
 #define TARGETDEV_2 "Swing"
 #define TARGETDEV_3 "SeaSaw"
+
 #define RSSI_TH -69
 #define RSSI_TOLERANCE 5
 
@@ -21,28 +28,28 @@ BLEScan *pBLEScan;
 String closestDeviceName = "";
 int closestRSSI = -999;
 
-void setup()
+struct Button
 {
-  Serial.begin(115200);
-  Serial2.begin(9600); // Init serial port for DFPlayer Mini
+  const uint8_t PIN;
+  uint32_t numberKeyPresses;
+  bool pressed;
+};
 
-  // Start communication with DFPlayer Mini
-  Serial.println("Connecting to DFplayer");
-  while (!player.begin(Serial2))
+Button button1 = {BUTT_PIN, 0, false};
+
+// variables to keep track of the timing of recent interrupts
+unsigned long button_time = 0;
+unsigned long last_button_time = 0;
+
+void IRAM_ATTR isr()
+{
+  button_time = millis();
+  if (button_time - last_button_time > 250)
   {
-      Serial.print(".");
-      delay(1000);
+    button1.numberKeyPresses++;
+    button1.pressed ^= 1;
+    last_button_time = button_time;
   }
-  Serial.println(" DFplayer connected!");
-  player.volume(30); // Set volume to maximum (0 to 30).
-
-  // Initialize BLE
-  BLEDevice::init("ESP32_Scanner");
-  pBLEScan = BLEDevice::getScan(); // Create BLE scanner
-  pBLEScan->setActiveScan(true);   // Active scan to get RSSI and device names
-
-  // Set buzzer pin as output
-  pinMode(buzzerPin, OUTPUT);
 }
 
 // Function to check if a device name matches any of the target names
@@ -62,9 +69,41 @@ bool isTargetDevice(String deviceName)
   return false;
 }
 
+void setup()
+{
+  Serial.begin(115200);
+  Serial2.begin(9600); // Init serial port for DFPlayer Mini
+
+  // Start communication with DFPlayer Mini
+  Serial.println("Connecting to DFplayer");
+  while (!player.begin(Serial2))
+  {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println(" DFplayer connected!");
+  player.volume(30); // Set volume to maximum (0 to 30).
+
+  // Initialize BLE
+  BLEDevice::init("ESP32_Scanner");
+  pBLEScan = BLEDevice::getScan(); // Create BLE scanner
+  pBLEScan->setActiveScan(true);   // Active scan to get RSSI and device names
+
+  // Set buzzer pin as output
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(button1.PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+  attachInterrupt(button1.PIN, isr, FALLING);
+}
+
 void loop()
 {
-  // Serial.println("Scanning for BLE devices...");
+  Serial.println("Scanning for BLE devices...");
+  if (button1.pressed)
+  {
+    Serial.printf("Button has been pressed %u times\n", button1.numberKeyPresses);
+    button1.pressed = false;
+  }
 
   BLEScanResults foundDevices = pBLEScan->start(scanTime, false);
 
@@ -98,7 +137,7 @@ void loop()
   // Output sound based on the closest filtered device
   if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
   {
-    
+
     // Give tolerance to each RSSI value for every target device
 
     // if (abs(closestRSSI - RSSI_TH) <= 5 && abs(closestRSSI - RSSI_TH) >= 0){
@@ -113,18 +152,21 @@ void loop()
     {
       toneFrequency = 1000;
       player.play(1);
+
       delay(1000);
     }
     else if ((closestDeviceName == "Swing"))
     {
       toneFrequency = 5000;
       player.play(2);
+
       delay(1000);
     }
     Serial.printf("Freq = %d\n", toneFrequency);
     tone(buzzerPin, toneFrequency, 500); // Play tone for 500ms
-  // Wait before the next scan
-  delay(500);
+
+    // Wait before the next scan
+    delay(500);
   }
   else
   {
@@ -137,6 +179,4 @@ void loop()
     // tone(buzzerPin, 100, 500);
     // tone(buzzerPin, 10000, 500);
   }
-
-
 }
