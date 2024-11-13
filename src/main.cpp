@@ -16,12 +16,28 @@
 #define TARGETDEV_2 "Swing"
 // #define TARGETDEV_3 "SeaSaw"
 
+// List of target device names
+String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
+int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
+
 #define RSSI_TH -69
 #define RSSI_TOLERANCE 5
 #define N_EQUIPMENT 2
-#define SLIDE_IDX 0
-#define SWING_IDX 1
+#define CAPICHE_DELAY 3000
+#define AUDIO_DELAY 500
+
 // #define SEASAW_IDX 2
+#define OutOfBounds_IDX 1
+#define SLIDE_IDX 2
+#define SWING_IDX 3
+#define Welcome_IDX 4
+#define Please_IDX 5
+#define Click1_IDX 6
+#define Anymore_IDX 7
+#define AreOn_IDX 8
+#define Click2_IDX 9
+#define AreIn_IDX 10
+#define VocalEnable_IDX 11
 
 DFRobotDFPlayerMini player; // Create the Player object
 
@@ -32,8 +48,8 @@ BLEScan *pBLEScan;
 String closestDeviceName = "";
 String closestBefore = "";
 int closestRSSI = -999;
-unsigned long time1_start = 0;
-unsigned long time2_start = 0;
+unsigned long holdtime_1 = 3000;
+unsigned long holdtime_2 = 3000;
 int loc_type = 0;
 int loc_before;
 int play_mode = 0;
@@ -71,10 +87,7 @@ void IRAM_ATTR isr()
 
 bool isTargetDevice(String deviceName)
 {
-    // List of target device names
-    String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
 
-    int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
     for (int i = 0; i < targetDeviceCount; i++)
     {
         if (deviceName == targetDeviceNames[i])
@@ -83,6 +96,18 @@ bool isTargetDevice(String deviceName)
         }
     }
     return false;
+}
+
+int findIdx(String str)
+{
+    for (int i = 0; i < targetDeviceCount; i++)
+    {
+        if (str == targetDeviceNames[i])
+        {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void setup()
@@ -97,8 +122,12 @@ void setup()
         Serial.print(".");
         delay(1000);
     }
-    Serial.println(" DFplayer connected!");
+
     player.volume(30); // Set volume to maximum (0 to 30).
+
+    Serial.println("Vocal enabled!");
+    player.play(11);
+    delay(AUDIO_DELAY);
 
     // Initialize BLE
     BLEDevice::init("ESP32_Scanner");
@@ -111,9 +140,12 @@ void setup()
     pinMode(LED_PIN, OUTPUT);
     attachInterrupt(button1.PIN, isr, FALLING);
 }
-
+bool led_state;
 void loop()
 {
+    led_state ^= 1;
+    digitalWrite(LED_PIN, led_state);
+
     BLEScanResults foundDevices = pBLEScan->start(scanTime, false);
 
     // Reset closest device tracker
@@ -150,33 +182,39 @@ void loop()
     // Give tolerance to each RSSI value for every target device
     Serial.printf("Mode = %d\n", play_mode);
     int audio_delay = 0;
+    // bool halt = false;
     if (play_mode < 1)
     {
+
+        holdtime_1, holdtime_2 = CAPICHE_DELAY, CAPICHE_DELAY;
         if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
         {
             inBound = true;
             Serial.printf("Are you in ");
-            if ((closestDeviceName == "Slide"))
-            {
-                loc_type = SLIDE_IDX + 1;
-                audio_delay = 2000;
-            }
-            else if ((closestDeviceName == "Swing"))
-            {
-                loc_type = SWING_IDX + 1;
-                audio_delay = 2000;
-            }
+            player.play(AreIn_IDX);
+            delay(AUDIO_DELAY);
+
+            loc_type = findIdx(closestDeviceName) + 2;
+
             Serial.printf("%s\n", closestDeviceName);
-            Serial.printf("Click you necklace button if so!\n");
+            player.play(loc_type);
+            delay(AUDIO_DELAY);
+
+            Serial.printf("Click your necklace button if so!\n");
+            player.play(Click2_IDX);
+            delay(AUDIO_DELAY*2);
+
             closestBefore = closestDeviceName;
         }
         else
         {
             // Out of Bounds (detect no esp nearby) Code
             inBound = false;
+
             Serial.printf("Out of Bounds\n");
-            loc_type = N_EQUIPMENT + 1;
-            audio_delay = 7000;
+            loc_type = OutOfBounds_IDX;
+            player.play(loc_type);
+            delay(AUDIO_DELAY);
         }
     }
     else if (play_mode >= 1)
@@ -188,12 +226,27 @@ void loop()
                 if ((closestDeviceName.length() == 0 || closestBefore != closestDeviceName))
                 {
                     // wait for a while to ensure player, 3000 ms to exact
-                    if ((millis() - time1_start) >= 3000)
+                    if ((millis() - holdtime_1) >= 3000)
                     {
-                        time1_start = millis();
+                        holdtime_1 = millis();
                         Serial.printf("Are you not on %s anymore?\n", closestBefore);
-                        Serial.printf("Click if yes\n");
+                        player.play(AreOn_IDX);
+                        delay(AUDIO_DELAY);
+                        
+                        loc_type = findIdx(closestBefore) + 2;
+                        player.play(loc_type);
+                        delay(AUDIO_DELAY);
+                        
+                        player.play(Anymore_IDX);
+                        delay(AUDIO_DELAY);
+                        
+                        Serial.printf("Click if not\n");
+                        player.play(Click1_IDX);
+                        delay(AUDIO_DELAY+100);
+                        
                         Serial.printf("Please follow the sound to go back\n");
+                        player.play(Please_IDX);
+                        delay(AUDIO_DELAY*2);
                     }
 
                     if (play_mode == 3)
@@ -205,22 +258,26 @@ void loop()
                 else if (play_mode == 3)
                 {
                     Serial.printf("You are in %s\n", closestBefore);
-                    delay(2000);
+                    loc_type = findIdx(closestDeviceName) + 2;
+                    player.play(loc_type);
+                    delay(AUDIO_DELAY);
+                    
                     play_mode = 2;
                 }
             }
-
         }
         else
         {
-            Serial.printf("Welcome to %s\n", closestDeviceName);
+            Serial.printf("Welcome to %s\n", closestBefore);
+            player.play(Welcome_IDX);
+            delay(AUDIO_DELAY);
+            
+            loc_type = findIdx(closestBefore) + 2;
+            player.play(loc_type);
+            delay(AUDIO_DELAY);
+            
             play_mode++;
         }
     }
 
-    //     // Guide the player with speaker
-    //     Serial.printf("%s\n", closestDeviceName);
-    //     player.play(loc_type);
-    //     // Wait for audio
-    //     delay(audio_delay - (scanTime * 1000));
 }
