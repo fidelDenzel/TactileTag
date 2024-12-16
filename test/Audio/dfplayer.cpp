@@ -84,14 +84,16 @@ void printDetail(uint8_t type, int value){
   }
 }
 
-
+int inputt = 0;
 void loop() {
+    scanf("%d\n", &inputt);
+
     player.play(1);
     Serial.println("Playing 1...");
     delay(5000);
 
-    player.play(2);
-    Serial.println("Playing 2...");
-    delay(5000);
+    // player.play(2);
+    // Serial.println("Playing 2...");
+    // delay(5000);
 
    }

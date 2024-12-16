@@ -24,20 +24,20 @@ int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0])
 #define RSSI_TOLERANCE 5
 #define N_EQUIPMENT 2
 #define CAPICHE_DELAY 3000
-#define AUDIO_DELAY 1500
+#define AUDIO_DELAY 2000
 
 // #define SEASAW_IDX 2
-#define OutOfBounds_IDX 5
-#define SLIDE_IDX 6
-#define SWING_IDX 7
-#define Welcome_IDX 8
-#define Please_IDX 9
-#define Click1_IDX 10
-// #define Anymore_IDX 
-#define AreOn_IDX 1
-#define Click2_IDX 2
-#define AreIn_IDX 3
-#define VocalEnable_IDX 4
+#define OutOfBounds_IDX 8
+#define SLIDE_IDX 9
+#define SWING_IDX 10
+#define Welcome_IDX 11
+#define Please_IDX 1
+#define Click1_IDX 2
+#define Anymore_IDX 3
+#define AreOn_IDX 4
+#define Click2_IDX 5
+#define AreIn_IDX 6
+#define VocalEnable_IDX 7
 
 DFRobotDFPlayerMini player; // Create the Player object
 
@@ -54,7 +54,7 @@ int loc_type = 0;
 int loc_before;
 int play_mode = 0;
 bool inBound = false;
-int idx_offset = SLIDE_IDX;
+int idx_offset = 9;
 
 struct Button
 {
@@ -236,20 +236,20 @@ void loop()
                         player.play(AreOn_IDX);
                         delay(AUDIO_DELAY);
 
-                        loc_type = findIdx(closestBefore) + idx_offset;
+                        loc_type = findIdx(closestBefore) + 2;
                         player.play(loc_type);
                         delay(AUDIO_DELAY);
 
-                        // player.play(Anymore_IDX);
-                        // delay(AUDIO_DELAY);
+                        player.play(Anymore_IDX);
+                        delay(AUDIO_DELAY);
 
                         Serial.printf("Tekan untuk bermain di tempat lain!\n");
                         player.play(Click1_IDX);
-                        delay(AUDIO_DELAY);
+                        delay(AUDIO_DELAY + 100);
 
                         Serial.printf("Atau ikuti suara untuk kembali!\n");
                         player.play(Please_IDX);
-                        delay(AUDIO_DELAY);
+                        delay(AUDIO_DELAY * 2);
                     }
 
                     if (play_mode == 3)
@@ -261,7 +261,7 @@ void loop()
                 else if (play_mode == 3)
                 {
                     Serial.printf("Anda di %s\n", closestBefore);
-                    loc_type = findIdx(closestDeviceName) + idx_offset;
+                    loc_type = findIdx(closestDeviceName) + 2;
                     player.play(loc_type);
                     delay(AUDIO_DELAY);
 
@@ -275,7 +275,7 @@ void loop()
             player.play(Welcome_IDX);
             delay(AUDIO_DELAY);
 
-            loc_type = findIdx(closestBefore) + idx_offset;
+            loc_type = findIdx(closestBefore) + 2;
             player.play(loc_type);
             delay(AUDIO_DELAY);
 
