@@ -7,7 +7,7 @@ void setup() {
   Serial.begin(115200);
 
   // Create a BLE device
-  BLEDevice::init("Perosotan");
+  BLEDevice::init("Ayunan");
 
   // Create a BLE server
   BLEServer *pServer = BLEDevice::createServer();
@@ -16,7 +16,7 @@ void setup() {
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
 
-  Serial.println("-Perosotan- Beacon started...");
+  Serial.println("-Ayunan- Beacon started...");
 }
 
 void loop() {
