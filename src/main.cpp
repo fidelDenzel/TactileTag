@@ -26,18 +26,30 @@ int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0])
 #define CAPICHE_DELAY 3000
 #define AUDIO_DELAY 1500
 
-// #define SEASAW_IDX 2
-#define OutOfBounds_IDX 5
-#define SLIDE_IDX 6
-#define SWING_IDX 7
-#define Welcome_IDX 8
-#define Please_IDX 9
-#define Click1_IDX 10
-// #define Anymore_IDX 
-#define AreOn_IDX 1
-#define Click2_IDX 2
-#define AreIn_IDX 3
-#define VocalEnable_IDX 4
+// #define SLIDE_IDX 6 8
+// #define SWING_IDX 7 9
+// #define Welcome_IDX 8 10
+// #define Follow_IDX 9 1
+// #define ClickOut_IDX 10 2
+// #define OutYet_IDX 1 3
+// #define In 2 4
+// #define EnsureInside_IDX 3 5
+// #define Hello_TACG_IDX 4 6
+// #define OutOfBounds_IDX 5 7
+
+#define SLIDE_IDX 1
+#define SWING_IDX 2
+#define Welcome_IDX 3
+#define Follow_IDX 4
+#define ClickOut_IDX 5
+
+#define test_IDX 6
+
+#define OutYet_IDX 7
+#define ClickIn_IDX 8
+#define EnsureInside_IDX 9
+#define Hello_TACG_IDX 10
+#define OutOfBounds_IDX 11
 
 DFRobotDFPlayerMini player; // Create the Player object
 
@@ -129,7 +141,7 @@ void setup()
     player.volume(30); // Set volume to maximum (0 to 30).
 
     Serial.println("Halo TACG siap membantu!");
-    player.play(VocalEnable_IDX);
+    player.play(Hello_TACG_IDX);
     delay(5000);
 
     // Initialize BLE
@@ -194,7 +206,7 @@ void loop()
         {
             inBound = true;
             Serial.printf("Apakah anda di ");
-            player.play(AreIn_IDX);
+            player.play(EnsureInside_IDX);
             delay(AUDIO_DELAY);
 
             loc_type = findIdx(closestDeviceName) + idx_offset;
@@ -204,7 +216,7 @@ void loop()
             delay(AUDIO_DELAY);
 
             Serial.printf("Tekan kalung jika ingin bermain di sini!\n");
-            player.play(Click2_IDX);
+            player.play(ClickIn_IDX);
             delay(AUDIO_DELAY * 2);
 
             closestBefore = closestDeviceName;
@@ -233,7 +245,7 @@ void loop()
                     {
                         holdtime_1 = millis();
                         Serial.printf("Apakah anda sudah keluar dari %s?\n", closestBefore);
-                        player.play(AreOn_IDX);
+                        player.play(OutYet_IDX);
                         delay(AUDIO_DELAY);
 
                         loc_type = findIdx(closestBefore) + idx_offset;
@@ -244,11 +256,11 @@ void loop()
                         // delay(AUDIO_DELAY);
 
                         Serial.printf("Tekan untuk bermain di tempat lain!\n");
-                        player.play(Click1_IDX);
+                        player.play(ClickOut_IDX);
                         delay(AUDIO_DELAY);
 
                         Serial.printf("Atau ikuti suara untuk kembali!\n");
-                        player.play(Please_IDX);
+                        player.play(Follow_IDX);
                         delay(AUDIO_DELAY);
                     }
 
