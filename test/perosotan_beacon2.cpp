@@ -2,23 +2,8 @@
 #include <WiFi.h>
 #include <NimBLEDevice.h>
 
-// MAC's Beacon : A0:DD:6C:AF:6C:64
-
-typedef struct scanner_command
-{
-    int scanner_id;
-    bool soundStatus;
-} scanner_command;
-
-scanner_command scannerCommand;
-
-void onReceive(const uint8_t *macAddr, const uint8_t *incomingData, int len) {
-    memcpy(&scannerCommand, incomingData, sizeof(scannerCommand));
-    Serial.print("SCANNER_ID: ");
-    Serial.println(scannerCommand.scanner_id);
-    Serial.print("SOUND_STATUS: ");
-    Serial.println(scannerCommand.soundStatus);
-    Serial.println();
+void onReceive(const uint8_t *macAddr, const uint8_t *data, int len) {
+    // Minimal callback
 }
 
 void setup() {
