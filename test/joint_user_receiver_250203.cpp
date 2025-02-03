@@ -1,6 +1,11 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+// #include <BLEDevice.h>
+// #include <BLEUtils.h>
+// #include <BLEScan.h>
+// #include <Wire.h>
 #include "DFRobotDFPlayerMini.h"
+// #include <driver/i2s.h>
 #include <math.h>
 #include <esp_now.h>
 #include <WiFi.h>
@@ -14,11 +19,26 @@
 #define TARGETDEV_2 "Ayunan"
 // #define TARGETDEV_3 "SeaSaw"
 
+// List of target device names
+String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
+int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
+
 #define RSSI_TH -69
 #define RSSI_TOLERANCE 5
 #define N_EQUIPMENT 2
 #define CAPICHE_DELAY 3000
 #define AUDIO_DELAY 1500
+
+// #define SLIDE_IDX 6 8
+// #define SWING_IDX 7 9
+// #define Welcome_IDX 8 10
+// #define Follow_IDX 9 1
+// #define ClickOut_IDX 10 2
+// #define OutYet_IDX 1 3
+// #define In 2 4
+// #define EnsureInside_IDX 3 5
+// #define Hello_TACG_IDX 4 6
+// #define OutOfBounds_IDX 5 7
 
 #define SLIDE_IDX 1
 #define SWING_IDX 2
@@ -34,15 +54,11 @@
 #define Hello_TACG_IDX 10
 #define OutOfBounds_IDX 11
 
-// List of target device names
-String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
-int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
-
 DFRobotDFPlayerMini player; // Create the Player object
 
 int scanTime = 1; // Time for scanning BLE devices (in seconds)
 // BLEScan *pBLEScan;
-NimBLEScan *pScan;
+NimBLEScan* pScan;
 
 // Variables to track the closest filtered device
 String closestDeviceName = "";
@@ -56,10 +72,9 @@ int play_mode = 0;
 bool inBound = false;
 int idx_offset = SLIDE_IDX;
 
-typedef struct scanner_command
-{
-    int scanner_id = SCANNER_ID;
-    bool soundStatus;
+typedef struct scanner_command {
+  int scanner_id = SCANNER_ID;
+  bool status;
 } scanner_command;
 
 scanner_command scannerCommand;
@@ -70,38 +85,34 @@ esp_now_peer_info_t peerInfo;
 uint8_t peerMACAddress[2][6] = {
     {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-};
+    };
+
+// Message to send via ESP-NOW
+const char* message = "Sound the music!";
 
 // Function to handle ESP-NOW data sending
-void onSent(const uint8_t *macAddr, esp_now_send_status_t status)
-{
+void onSent(const uint8_t* macAddr, esp_now_send_status_t status) {
     Serial.print("Last Packet Send Status: ");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 // Function to send a message via ESP-NOW
-void sendESPNowMessage(int mac_id)
-{
+void sendESPNowMessage(int mac_id) {
 
-    uint8_t *array_buffer = peerMACAddress[0];
-    esp_err_t result = esp_now_send(array_buffer, (uint8_t *)&scannerCommand, sizeof(scannerCommand));
+    uint8_t* array_buffer = peerMACAddress[0];
+    esp_err_t result = esp_now_send(array_buffer, (uint8_t*) &scannerCommand, sizeof(scannerCommand));
 
-    if (result == ESP_OK)
-    {
+    if (result == ESP_OK) {
         Serial.println("Message sent successfully.");
-    }
-    else
-    {
+    } else {
         Serial.println("Error sending the message.");
     }
 }
 
 // Setup ESP-NOW
-void setupESPNow()
-{
+void setupESPNow() {
     WiFi.mode(WIFI_STA); // Set WiFi to station mode
-    if (esp_now_init() != ESP_OK)
-    {
+    if (esp_now_init() != ESP_OK) {
         Serial.println("Error initializing ESP-NOW.");
         return;
     }
@@ -110,10 +121,9 @@ void setupESPNow()
     // Add peer
     peerInfo = {};
     memcpy(peerInfo.peer_addr, peerMACAddress, 6);
-    peerInfo.channel = 0;     // Use default WiFi channel
+    peerInfo.channel = 0; // Use default WiFi channel
     peerInfo.encrypt = false; // No encryption
-    if (esp_now_add_peer(&peerInfo) != ESP_OK)
-    {
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
         Serial.println("Failed to add peer.");
         return;
     }
@@ -176,8 +186,7 @@ int findIdx(String str)
     return -1;
 }
 
-void tacgBLEScanner()
-{
+void tacgBLEScanner(){
     BLEScanResults foundDevices = pScan->start(scanTime, false);
 
     // Reset closest device tracker
@@ -211,8 +220,7 @@ void tacgBLEScanner()
     }
 }
 
-void tacg_modeSelector()
-{
+void tacg_modeSelector(){
     Serial.printf("Mode = %d\n", play_mode);
     int audio_delay = 0;
     // bool halt = false;
@@ -225,7 +233,7 @@ void tacg_modeSelector()
             inBound = true;
 
             // scannerCommand.scannerID = findIdx(closestBefore);
-            scannerCommand.soundStatus = false;
+            scannerCommand.status = false;
             sendESPNowMessage(findIdx(closestBefore));
 
             Serial.printf("Apakah anda di ");
@@ -280,7 +288,7 @@ void tacg_modeSelector()
 
                         Serial.printf("Tekan untuk bermain di tempat lain!\n");
                         player.play(ClickOut_IDX);
-                        delay(AUDIO_DELAY + 1000);
+                        delay(AUDIO_DELAY+1000);
 
                         Serial.printf("Atau ikuti suara untuk kembali!\n");
                         player.play(Follow_IDX);
@@ -308,9 +316,9 @@ void tacg_modeSelector()
         else
         {
             // scannerCommand.server_id = findIdx(closestBefore);
-            scannerCommand.soundStatus = true;
-            sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
-
+            scannerCommand.status = true;
+            sendESPNowMessage(findIdx(closestBefore));//(closestBefore, true);
+            
             Serial.printf("Selamat datang di %s\n", closestBefore);
             player.play(Welcome_IDX);
             delay(AUDIO_DELAY);
@@ -344,6 +352,7 @@ void setup()
     delay(5000);
 
     // Initialize BLE
+
     NimBLEDevice::init("ESP32_Scanner");
     pScan = NimBLEDevice::getScan();
     pScan->setAdvertisedDeviceCallbacks(nullptr, true);
