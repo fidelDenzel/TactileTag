@@ -108,8 +108,7 @@ void setupESPNow()
     esp_now_register_send_cb(onSent); // Register the send callback
 
     // Add peer
-    peerInfo = {};
-    memcpy(peerInfo.peer_addr, peerMACAddress, 6);
+    memcpy(peerInfo.peer_addr, peerMACAddress, sizeof(peerMACAddress)/sizeof(uint8_t));
     peerInfo.channel = 0;     // Use default WiFi channel
     peerInfo.encrypt = false; // No encryption
     if (esp_now_add_peer(&peerInfo) != ESP_OK)
@@ -287,7 +286,7 @@ void tacg_modeSelector()
                         delay(AUDIO_DELAY);
                     }
 
-                    if (play_mode == 3)
+                    if (play_mode >= 3)
                     {
                         play_mode = 0;
                     }
@@ -324,9 +323,8 @@ void tacg_modeSelector()
     }
 }
 
-void setup()
-{
-    Serial.begin(115200);
+void setupDFP(int dfpVolume){
+
     Serial2.begin(9600); // Init serial port for DFPlayer Mini
 
     // Start communication with DFPlayer Mini
@@ -337,19 +335,32 @@ void setup()
         delay(1000);
     }
 
-    player.volume(30); // Set volume to maximum (0 to 30).
+    player.volume(dfpVolume); // Set volume to maximum (0 to 30).
+
+}
+
+void setupNimBLE(int bleInterval){
+    
+    NimBLEDevice::init("ESP32_Scanner");
+    pScan = NimBLEDevice::getScan();
+    pScan->setAdvertisedDeviceCallbacks(nullptr, true);
+    pScan->setActiveScan(true); // Active scan for more data
+    pScan->setInterval(bleInterval);
+    pScan->setWindow(99);
+}
+
+void setup()
+{
+    Serial.begin(115200);
+
+    setupDFP(30);
 
     Serial.println("Halo TACG siap membantu!");
     player.play(Hello_TACG_IDX);
     delay(5000);
 
     // Initialize BLE
-    NimBLEDevice::init("ESP32_Scanner");
-    pScan = NimBLEDevice::getScan();
-    pScan->setAdvertisedDeviceCallbacks(nullptr, true);
-    pScan->setActiveScan(true); // Active scan for more data
-    pScan->setInterval(100);
-    pScan->setWindow(99);
+    setupNimBLE(100);
 
     // Setup ESP-NOW
     setupESPNow();
