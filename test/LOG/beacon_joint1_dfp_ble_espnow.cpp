@@ -30,6 +30,7 @@ void onReceive(const uint8_t *macAddr, const uint8_t *incomingData, int len)
     nowTime = millis();
     memcpy(&scannerCommand, incomingData, sizeof(scannerCommand));
     Serial.printf("Sound status = %d\n", scannerCommand.soundStatus);
+
 }
 
 void setupNimBLEServer()
@@ -60,56 +61,39 @@ void setupDFP(int dfpVolume)
     player.volume(dfpVolume); // Set volume to maximum (0 to 30).
 }
 
-// Structure example to receive data
-// Must match the sender structure
-typedef struct test_struct
+void setupESPNow()
 {
-    int x;
-    int y;
-} test_struct;
-
-// Create a struct_message called myData
-test_struct myData;
-
-// callback function that will be executed when data is received
-void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
-{
-    memcpy(&myData, incomingData, sizeof(myData));
-    Serial.print("Bytes received: ");
-    Serial.println(len);
-    Serial.print("x: ");
-    Serial.println(myData.x);
-    Serial.print("y: ");
-    Serial.println(myData.y);
-    Serial.println();
+    WiFi.mode(WIFI_STA);
+    if (esp_now_init() != ESP_OK)
+    {
+        Serial.println("Error initializing ESP-NOW.");
+        return;
+    }
+    esp_now_register_recv_cb(onReceive);
 }
 
 void setup()
 {
-    // Initialize Serial Monitor
     Serial.begin(115200);
 
     // Print the MAC address to the Serial Monitor
     Serial.println("ESP32 MAC Address: " + WiFi.macAddress());
+
+    // Serial.printf("%s starting", targetDeviceNames[WHICH_BEACON-1]);
+
     setupDFP(30);
 
     setupNimBLEServer();
 
-    // Set device as a Wi-Fi Station
-    WiFi.mode(WIFI_STA);
-
-    // Init ESP-NOW
-    if (esp_now_init() != ESP_OK)
-    {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-
-    // Once ESPNow is successfully Init, we will register for recv CB to
-    // get recv packer info
-    esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+    setupESPNow();
 }
 
 void loop()
 {
+
+    if (scannerCommand.soundStatus)
+    {
+        player.play(WHICH_BEACON);
+        delay(2000);
+    }
 }
