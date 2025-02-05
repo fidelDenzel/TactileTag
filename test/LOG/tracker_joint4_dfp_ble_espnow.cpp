@@ -62,20 +62,7 @@ typedef struct scanner_command
     bool soundStatus;
 } scanner_command;
 
-scanner_command scannerCommand1;
-scanner_command scannerCommand2;
-scanner_command scannerCommand3;
-
-typedef struct test_struct
-{
-    int x;
-    int y;
-} test_struct;
-
-test_struct test;
-test_struct test2;
-test_struct test3;
-
+scanner_command scannerCommand;
 esp_now_peer_info_t peerInfo;
 
 // ESP-NOW peer MAC address (replace with your receiver's MAC address)
@@ -92,23 +79,64 @@ uint8_t peerMACAddress[2][6] = {
 //     {0x61, 0x62, 0x63, 0x64, 0x65, 0x66},
 // };
 
-// REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
-uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
-uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
-// uint8_t broadcastAddress3[] = {0xFF, , , , , };
-
-// esp_now_peer_info_t peerInfo;
-
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+// Function to handle ESP-NOW data sending
+void onSent(const uint8_t *macAddr, esp_now_send_status_t status)
 {
-    char macStr[18];
-    Serial.print("Packet to: ");
-    // Copies the sender mac address to a string
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    Serial.print(macStr);
-    Serial.print(" send status:\t");
+    Serial.printf("\nESPNOW Send Status: ");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+// Function to send a message via ESP-NOW
+void sendESPNowMessage(int mac_id)
+{
+
+    // uint8_t *array_buffer = peerMACAddress;
+    esp_err_t result = esp_now_send(peerMACAddress[0], (uint8_t *)&scannerCommand, sizeof(scannerCommand));
+
+    if (result == ESP_OK)
+    {
+        Serial.println("\nMessage sent successfully.");
+    }
+    else
+    {
+        Serial.println("\nError sending the message.");
+    }
+}
+
+// Setup ESP-NOW
+void setupESPNow()
+{
+    WiFi.mode(WIFI_STA); // Set WiFi to station mode
+    if (esp_now_init() != ESP_OK)
+    {
+        Serial.println("Error initializing ESP-NOW.");
+        return;
+    }
+    esp_now_register_send_cb(onSent); // Register the send callback
+
+    // Add peer
+    peerInfo.channel = 0;     // Use default WiFi channel
+    peerInfo.encrypt = false; // No encryption
+    memcpy(peerInfo.peer_addr, peerMACAddress[0], sizeof(peerMACAddress[0]));
+    if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    {
+        Serial.println("Failed to add peer.");
+        return;
+    }
+
+    // for (int iter = 0; iter < (sizeof(peerMACAddress) / sizeof(peerMACAddress[0]));  iter++)
+    // {
+    //     memcpy(peerInfo.peer_addr, peerMACAddress[0], sizeof(peerMACAddress[0]));
+    //     if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    //     {
+    //         Serial.println("Failed to add peer.");
+    //         return;
+    //     }
+    //     else
+    //     {
+    //         Serial.printf("%s's ESP-NOW all good\n", peerInfo.peer_addr);
+    //     }
+    // }
 }
 
 struct Button
@@ -203,8 +231,6 @@ void tacgBLEScanner()
     }
 }
 
-
-
 void tacg_modeSelector()
 {
     Serial.printf("\nMode = %d\n", play_mode);
@@ -212,54 +238,6 @@ void tacg_modeSelector()
     // bool halt = false;
     if (play_mode < 1)
     {
-        test.x = random(0, 20);
-        test.y = random(0, 20);
-        test2.x = random(0, 20);
-        test2.y = random(0, 20);
-        // test3.x = random(0, 20);
-        // test3.y = random(0, 20);
-
-        esp_err_t result1 = esp_now_send(
-            broadcastAddress1,
-            (uint8_t *)&test,
-            sizeof(test_struct));
-
-        if (result1 == ESP_OK)
-        {
-            Serial.println("Sent with success");
-        }
-        else
-        {
-            Serial.println("Error sending the data");
-        }
-        // delay(500);
-        esp_err_t result2 = esp_now_send(
-            broadcastAddress2,
-            (uint8_t *)&test2,
-            sizeof(test_struct));
-
-        if (result2 == ESP_OK)
-        {
-            Serial.println("Sent with success");
-        }
-        else
-        {
-            Serial.println("Error sending the data");
-        }
-
-        //   delay(500);
-        //   esp_err_t result3 = esp_now_send(
-        //     broadcastAddress3,
-        //     (uint8_t *) &test3,
-        //     sizeof(test_struct));
-
-        //   if (result3 == ESP_OK) {
-        //     Serial.println("Sent with success");
-        //   }
-        //   else {
-        //     Serial.println("Error sending the data");
-        //   }
-        // delay(1000);
 
         holdtime_1, holdtime_2 = CAPICHE_DELAY, CAPICHE_DELAY;
         if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
@@ -267,21 +245,8 @@ void tacg_modeSelector()
             inBound = true;
 
             // scannerCommand.scannerID = findIdx(closestBefore);
-            // scannerCommand1.soundStatus = false;
-            // sendESPNowMessage(findIdx(closestBefore));
-            // esp_err_t result1 = esp_now_send(
-            //     broadcastAddress1,
-            //     (uint8_t *)&scannerCommand1,
-            //     sizeof(scannerCommand1));
-
-            // if (result1 == ESP_OK)
-            // {
-            //     Serial.println("Sent with success");
-            // }
-            // else
-            // {
-            //     Serial.println("Error sending the data");
-            // }
+            scannerCommand.soundStatus = false;
+            sendESPNowMessage(findIdx(closestBefore));
 
             Serial.printf("\nApakah anda di ");
             player.play(EnsureInside_IDX);
@@ -351,8 +316,8 @@ void tacg_modeSelector()
                 else if (play_mode >= 3)
                 {
                     // scannerCommand.server_id = findIdx(closestBefore);
-                    // scannerCommand.soundStatus = true;
-                    // sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
+                    scannerCommand.soundStatus = true;
+                    sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
                     Serial.printf("\nAnda di %s\n", closestBefore);
 
                     loc_type = findIdx(closestDeviceName) + idx_offset;
@@ -366,8 +331,8 @@ void tacg_modeSelector()
         else
         {
             // scannerCommand.server_id = findIdx(closestBefore);
-            // scannerCommand.soundStatus = true;
-            // sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
+            scannerCommand.soundStatus = true;
+            sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
 
             Serial.printf("\nSelamat datang di %s\n", closestBefore);
             player.play(Welcome_IDX);
@@ -423,44 +388,14 @@ void setup()
     // Initialize BLE
     setupNimBLE(100);
 
+    // Setup ESP-NOW
+    setupESPNow();
+
     // Set buzzer pin as output
     pinMode(buzzerPin, OUTPUT);
     pinMode(button1.PIN, INPUT_PULLUP);
     pinMode(LED_PIN, OUTPUT);
     attachInterrupt(button1.PIN, isr, FALLING);
-
-    WiFi.mode(WIFI_STA);
-
-    if (esp_now_init() != ESP_OK)
-    {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-
-    esp_now_register_send_cb(OnDataSent);
-
-    // register peer
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
-
-    memcpy(peerInfo.peer_addr, broadcastAddress1, 6);
-    if (esp_now_add_peer(&peerInfo) != ESP_OK)
-    {
-        Serial.println("Failed to add peer");
-        return;
-    }
-
-    memcpy(peerInfo.peer_addr, broadcastAddress2, 6);
-    if (esp_now_add_peer(&peerInfo) != ESP_OK)
-    {
-        Serial.println("Failed to add peer");
-        return;
-    }
-    //   memcpy(peerInfo.peer_addr, broadcastAddress3, 6);
-    //   if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    //     Serial.println("Failed to add peer");
-    //     return;
-    //   }
 }
 
 void loop()

@@ -65,17 +65,6 @@ typedef struct scanner_command
 scanner_command scannerCommand1;
 scanner_command scannerCommand2;
 scanner_command scannerCommand3;
-
-typedef struct test_struct
-{
-    int x;
-    int y;
-} test_struct;
-
-test_struct test;
-test_struct test2;
-test_struct test3;
-
 esp_now_peer_info_t peerInfo;
 
 // ESP-NOW peer MAC address (replace with your receiver's MAC address)
@@ -97,6 +86,12 @@ uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
 uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
 // uint8_t broadcastAddress3[] = {0xFF, , , , , };
 
+typedef struct test_struct
+{
+    int x;
+    int y;
+} test_struct;
+
 // esp_now_peer_info_t peerInfo;
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
@@ -110,6 +105,66 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
     Serial.print(" send status:\t");
     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
+
+// // Function to handle ESP-NOW data sending
+// void onSent(const uint8_t *macAddr, esp_now_send_status_t status)
+// {
+//     Serial.printf("\nESPNOW Send Status: ");
+//     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+// }
+
+// // Function to send a message via ESP-NOW
+// void sendESPNowMessage(int mac_id)
+// {
+
+//     // uint8_t *array_buffer = peerMACAddress;
+//     esp_err_t result = esp_now_send(peerMACAddress[0], (uint8_t *)&scannerCommand, sizeof(scannerCommand));
+
+//     if (result == ESP_OK)
+//     {
+//         Serial.println("\nMessage sent successfully.");
+//     }
+//     else
+//     {
+//         Serial.println("\nError sending the message.");
+//     }
+// }
+
+// // Setup ESP-NOW
+// void setupESPNow()
+// {
+//     WiFi.mode(WIFI_STA); // Set WiFi to station mode
+//     if (esp_now_init() != ESP_OK)
+//     {
+//         Serial.println("Error initializing ESP-NOW.");
+//         return;
+//     }
+//     esp_now_register_send_cb(onSent); // Register the send callback
+
+//     // Add peer
+//     peerInfo.channel = 0;     // Use default WiFi channel
+//     peerInfo.encrypt = false; // No encryption
+//     memcpy(peerInfo.peer_addr, peerMACAddress[0], sizeof(peerMACAddress[0]));
+//     if (esp_now_add_peer(&peerInfo) != ESP_OK)
+//     {
+//         Serial.println("Failed to add peer.");
+//         return;
+//     }
+
+//     // for (int iter = 0; iter < (sizeof(peerMACAddress) / sizeof(peerMACAddress[0]));  iter++)
+//     // {
+//     //     memcpy(peerInfo.peer_addr, peerMACAddress[0], sizeof(peerMACAddress[0]));
+//     //     if (esp_now_add_peer(&peerInfo) != ESP_OK)
+//     //     {
+//     //         Serial.println("Failed to add peer.");
+//     //         return;
+//     //     }
+//     //     else
+//     //     {
+//     //         Serial.printf("%s's ESP-NOW all good\n", peerInfo.peer_addr);
+//     //     }
+//     // }
+// }
 
 struct Button
 {
@@ -203,7 +258,9 @@ void tacgBLEScanner()
     }
 }
 
-
+test_struct test;
+test_struct test2;
+test_struct test3;
 
 void tacg_modeSelector()
 {
