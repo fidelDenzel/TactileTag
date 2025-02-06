@@ -56,25 +56,15 @@ int play_mode = 0;
 bool inBound = false;
 int idx_offset = SLIDE_IDX;
 
-typedef struct scanner_command
-{
-    int scanner_id = SCANNER_ID;
-    bool soundStatus;
-} scanner_command;
-
-scanner_command scannerCommand1;
-scanner_command scannerCommand2;
-scanner_command scannerCommand3;
-
-typedef struct test_struct
+typedef struct tracker_struct
 {
     int x;
     int y;
-} test_struct;
+} tracker_struct;
 
-test_struct test;
-test_struct test2;
-test_struct test3;
+tracker_struct tracker;
+tracker_struct tracker2;
+tracker_struct tracker3;
 
 esp_now_peer_info_t peerInfo;
 
@@ -83,8 +73,9 @@ esp_now_peer_info_t peerInfo;
 // Swing beacon's MAC   : 40:22:D8:08:3A:C0
 
 uint8_t peerMACAddress[2][6] = {
-    {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
+    
     {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0},
+    {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
 };
 
 // uint8_t peerMACAddress[2][6] = {
@@ -203,8 +194,6 @@ void tacgBLEScanner()
     }
 }
 
-
-
 void tacg_modeSelector()
 {
     Serial.printf("\nMode = %d\n", play_mode);
@@ -212,76 +201,46 @@ void tacg_modeSelector()
     // bool halt = false;
     if (play_mode < 1)
     {
-        test.x = random(0, 20);
-        test.y = random(0, 20);
-        test2.x = random(0, 20);
-        test2.y = random(0, 20);
-        // test3.x = random(0, 20);
-        // test3.y = random(0, 20);
-
-        esp_err_t result1 = esp_now_send(
-            broadcastAddress1,
-            (uint8_t *)&test,
-            sizeof(test_struct));
-
-        if (result1 == ESP_OK)
-        {
-            Serial.println("Sent with success");
-        }
-        else
-        {
-            Serial.println("Error sending the data");
-        }
-        // delay(500);
-        esp_err_t result2 = esp_now_send(
-            broadcastAddress2,
-            (uint8_t *)&test2,
-            sizeof(test_struct));
-
-        if (result2 == ESP_OK)
-        {
-            Serial.println("Sent with success");
-        }
-        else
-        {
-            Serial.println("Error sending the data");
-        }
-
-        //   delay(500);
-        //   esp_err_t result3 = esp_now_send(
-        //     broadcastAddress3,
-        //     (uint8_t *) &test3,
-        //     sizeof(test_struct));
-
-        //   if (result3 == ESP_OK) {
-        //     Serial.println("Sent with success");
-        //   }
-        //   else {
-        //     Serial.println("Error sending the data");
-        //   }
-        // delay(1000);
 
         holdtime_1, holdtime_2 = CAPICHE_DELAY, CAPICHE_DELAY;
         if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
         {
             inBound = true;
 
-            // scannerCommand.scannerID = findIdx(closestBefore);
-            // scannerCommand1.soundStatus = false;
-            // sendESPNowMessage(findIdx(closestBefore));
-            // esp_err_t result1 = esp_now_send(
-            //     broadcastAddress1,
-            //     (uint8_t *)&scannerCommand1,
-            //     sizeof(scannerCommand1));
+            tracker.x = 0;
+            tracker.y = 0;
+            tracker2.x = 1;
+            tracker2.y = 0;
+            // tracker3.x = random(0, 20);
+            // tracker3.y = random(0, 20);
 
-            // if (result1 == ESP_OK)
-            // {
-            //     Serial.println("Sent with success");
-            // }
-            // else
-            // {
-            //     Serial.println("Error sending the data");
-            // }
+            esp_err_t result1 = esp_now_send(
+                peerMACAddress[0],
+                (uint8_t *)&tracker,
+                sizeof(tracker_struct));
+
+            if (result1 == ESP_OK)
+            {
+                Serial.println("Sent with success");
+            }
+            else
+            {
+                Serial.println("Error sending the data");
+            }
+
+            esp_err_t result2 = esp_now_send(
+                peerMACAddress[1],
+                (uint8_t *)&tracker2,
+                sizeof(tracker_struct));
+
+            if (result2 == ESP_OK)
+            {
+                Serial.println("Sent with success");
+            }
+            else
+            {
+                Serial.println("Error sending the data");
+            }
 
             Serial.printf("\nApakah anda di ");
             player.play(EnsureInside_IDX);
@@ -321,6 +280,7 @@ void tacg_modeSelector()
                     // wait for a while to ensure player, 3000 ms to exact
                     if ((millis() - holdtime_1) >= 3000)
                     {
+
                         holdtime_1 = millis();
                         Serial.printf("\nApakah anda sudah keluar dari %s?\n", closestBefore);
                         player.play(OutYet_IDX);
@@ -350,9 +310,38 @@ void tacg_modeSelector()
                 // player can remind themselves what equipment this is
                 else if (play_mode >= 3)
                 {
-                    // scannerCommand.server_id = findIdx(closestBefore);
-                    // scannerCommand.soundStatus = true;
-                    // sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
+                    tracker.x = 0;
+                    tracker.y = 2;
+                    tracker2.x = 1;
+                    tracker2.y = 2;
+                    esp_err_t result1 = esp_now_send(
+                        peerMACAddress[0],
+                        (uint8_t *)&tracker,
+                        sizeof(tracker_struct));
+
+                    if (result1 == ESP_OK)
+                    {
+                        Serial.println("Sent with success");
+                    }
+                    else
+                    {
+                        Serial.println("Error sending the data");
+                    }
+
+                    esp_err_t result2 = esp_now_send(
+                        peerMACAddress[1],
+                        (uint8_t *)&tracker2,
+                        sizeof(tracker_struct));
+
+                    if (result2 == ESP_OK)
+                    {
+                        Serial.println("Sent with success");
+                    }
+                    else
+                    {
+                        Serial.println("Error sending the data");
+                    }
+
                     Serial.printf("\nAnda di %s\n", closestBefore);
 
                     loc_type = findIdx(closestDeviceName) + idx_offset;
@@ -365,9 +354,38 @@ void tacg_modeSelector()
         }
         else
         {
-            // scannerCommand.server_id = findIdx(closestBefore);
-            // scannerCommand.soundStatus = true;
-            // sendESPNowMessage(findIdx(closestBefore)); //(closestBefore, true);
+
+            tracker.x = 0;
+            tracker.y = 1;
+            tracker2.x = 2;
+            tracker2.y = 1;
+            esp_err_t result1 = esp_now_send(
+                peerMACAddress[0],
+                (uint8_t *)&tracker,
+                sizeof(tracker_struct));
+
+            if (result1 == ESP_OK)
+            {
+                Serial.println("Sent with success");
+            }
+            else
+            {
+                Serial.println("Error sending the data");
+            }
+
+            esp_err_t result2 = esp_now_send(
+                peerMACAddress[1],
+                (uint8_t *)&tracker2,
+                sizeof(tracker_struct));
+
+            if (result2 == ESP_OK)
+            {
+                Serial.println("Sent with success");
+            }
+            else
+            {
+                Serial.println("Error sending the data");
+            }
 
             Serial.printf("\nSelamat datang di %s\n", closestBefore);
             player.play(Welcome_IDX);
