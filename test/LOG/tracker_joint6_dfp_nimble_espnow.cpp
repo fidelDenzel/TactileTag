@@ -4,7 +4,6 @@
 #include <math.h>
 #include <esp_now.h>
 #include <WiFi.h>
-#include <cstring>
 
 #define buzzerPin 23
 #define BUTT_PIN 35
@@ -35,7 +34,7 @@
 #define OutOfBounds_IDX 11
 
 // List of target device names
-std::string targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
+String targetDeviceNames[] = {TARGETDEV_1, TARGETDEV_2};
 int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0]);
 
 DFRobotDFPlayerMini player; // Create the Player object
@@ -45,8 +44,8 @@ int scanTime = 1; // Time for scanning BLE devices (in seconds)
 NimBLEScan *pScan; // Use NimBLE.h library for less Flash Memory Usage
 
 // Variables to track the closest filtered device
-std::string closestDeviceName = "";
-std::string closestBefore = "";
+String closestDeviceName = "";
+String closestBefore = "";
 int closestRSSI = -999;
 unsigned long holdtime_1 = 3000;
 unsigned long holdtime_2 = 3000;
@@ -131,7 +130,7 @@ void IRAM_ATTR isr()
 
 // Function to check if a device name matches any of the target names
 
-bool isTargetDevice(std::string deviceName)
+bool isTargetDevice(String deviceName)
 {
 
     for (int i = 0; i < targetDeviceCount; i++)
@@ -144,7 +143,7 @@ bool isTargetDevice(std::string deviceName)
     return false;
 }
 
-int findIdx(std::string str)
+int findIdx(String str)
 {
     for (int i = 0; i < targetDeviceCount; i++)
     {
@@ -214,7 +213,7 @@ void tacgBLEScanner()
     {
         BLEAdvertisedDevice advertisedDevice = foundDevices.getDevice(i);
         int rssi = advertisedDevice.getRSSI();
-        std::string deviceName = advertisedDevice.getName().c_str();
+        String deviceName = advertisedDevice.getName().c_str();
 
         // Check if the device has a name and matches any target device name
         if (deviceName.length() > 0 && isTargetDevice(deviceName))
@@ -411,13 +410,12 @@ NimBLEAdvertisedDevice* myDevice = nullptr;
 
 class MyAdvertisedDeviceCallbacks2 : public NimBLEAdvertisedDeviceCallbacks {
     void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
-        // Serial.print("Found Device: ");
-        // Serial.println(advertisedDevice->toString().c_str());
+        Serial.print("Found Device: ");
+        Serial.println(advertisedDevice->toString().c_str());
 
         // Check if the advertised device name matches
-        std::string deviceNamed = advertisedDevice->getName(); 
-        if (deviceNamed == targetDeviceNames[findIdx(closestDeviceName)]) {
-            // Serial.println("Found the target device by name!");
+        if (advertisedDevice->getName() == "ESP32-Server") {
+            Serial.println("Found the target device by name!");
             myDevice = advertisedDevice;
             advertisedDevice->getScan()->stop(); // Stop scanning once found
         }
@@ -429,8 +427,7 @@ void setupNimBLE(int bleInterval)
 
     NimBLEDevice::init("ESP32_Tracker");
     pScan = NimBLEDevice::getScan();
-    // pScan->setAdvertisedDeviceCallbacks(nullptr, true);
-    pScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks2());
+    pScan->setAdvertisedDeviceCallbacks(nullptr, true);
     pScan->setActiveScan(true); // Active scan for more data
     pScan->setInterval(bleInterval);
     pScan->setWindow(99);
@@ -463,34 +460,6 @@ void loop()
 {
     led_state ^= 1;
     digitalWrite(LED_PIN, led_state);
-
-    // if (myDevice) {
-    //     Serial.println("Connecting to server...");
-    //     NimBLEClient* pClient = NimBLEDevice::createClient();
-
-    //     // Attempt to connect
-    //     if (pClient->connect(myDevice)) {
-    //         Serial.println("Connected to server");
-
-    //         // Access the service
-    //         NimBLERemoteService* pService = pClient->getService("1234");
-    //         if (pService) {
-    //             NimBLERemoteCharacteristic* pCharacteristic = pService->getCharacteristic("5678");
-    //             if (pCharacteristic) {
-    //                 Serial.print("Reading characteristic value: ");
-    //                 Serial.println(pCharacteristic->readValue().c_str());
-    //             } else {
-    //                 Serial.println("Characteristic not found!");
-    //             }
-    //         } else {
-    //             Serial.println("Service not found!");
-    //         }
-    //     } else {
-    //         Serial.println("Failed to connect to server");
-    //     }
-
-    //     myDevice = nullptr; // Reset the device object
-    // }
 
     tacgBLEScanner();
     tacg_modeSelector();
