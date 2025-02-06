@@ -9,6 +9,7 @@
 #define TARGETDEV_1 "Perosotan"
 #define TARGETDEV_2 "Ayunan"
 // #define TARGETDEV_3 "SeaSaw"
+#define PLAYSOUND_DELAY 10000
 
 DFRobotDFPlayerMini player; // Create the Player object
 
@@ -74,6 +75,7 @@ test_struct myData;
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
+    nowTime = millis();
     memcpy(&myData, incomingData, sizeof(myData));
     Serial.print("Bytes received: ");
     Serial.println(len);
@@ -112,4 +114,13 @@ void setup()
 
 void loop()
 {
+    // turn sound at beacon off after 5 seconds
+    if(millis() - nowTime >= PLAYSOUND_DELAY && myData.y == 1){
+        Serial.println("Turning off sound");
+        myData.y = 0;
+    }
+    if(myData.y){
+        player.play(WHICH_BEACON);
+        delay(2000);
+    }
 }
