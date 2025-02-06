@@ -6,7 +6,7 @@
 #define SLIDE_IDX 1
 #define SWING_IDX 2
 
-#define WHICH_BEACON SWING_IDX
+#define WHICH_BEACON SLIDE_IDX
 #define TARGETDEV_1 "ESP32-Perosotan"
 #define TARGETDEV_2 "ESP32-Ayunan"
 // #define TARGETDEV_3 "SeaSaw"
@@ -49,18 +49,14 @@ void setupNimBLEServer()
     NimBLEDevice::init(targetDeviceNames[WHICH_BEACON - 1]);
 
     NimBLEServer *pServer = NimBLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks());
 
     NimBLEService *pService = pServer->createService("1234");
 
-    NimBLECharacteristic* pCharacteristic = pService->createCharacteristic(
-        "5678",
-        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE
-    );
-    pCharacteristic->setValue("Hello from Server");
+    NimBLECharacteristic *pCharacteristic = pService->createCharacteristic(
+        "5678", NIMBLE_PROPERTY::READ);
     
     pService->start();
-    pServer->getAdvertising()->start();
+    NimBLEDevice::startAdvertising();
 }
 
 void setupDFP(int dfpVolume)
