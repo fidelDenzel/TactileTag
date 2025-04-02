@@ -5,6 +5,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <cstring>
+#include <string>  // Include this if using std::string
 
 #define buzzerPin 23
 #define BUTT_PIN 35
@@ -200,7 +201,7 @@ void ESPNOW_SendMsg(tracker_struct trackerFunct)
     }
 }
 
-void tacgBLEScanner()
+void tacgBLESearch()
 {
     BLEScanResults foundDevices = pScan->start(scanTime, false);
 
@@ -235,6 +236,30 @@ void tacgBLEScanner()
     }
 }
 
+void tacgBLEScanner()
+{
+    BLEScanResults foundDevices = pScan->start(scanTime, false);
+
+    // Reset closest device tracker
+    closestRSSI = -999;
+    closestDeviceName = "";
+
+    // Find the closest filtered device by RSSI
+    int ctr = 0;
+    for (int i = 0; i < foundDevices.getCount(); i++)
+    {
+        BLEAdvertisedDevice advertisedDevice = foundDevices.getDevice(i);
+        int rssi = advertisedDevice.getRSSI();
+        std::string deviceName = advertisedDevice.getName().c_str();
+
+        Serial.print("BLE name : ");
+        std::string stdStr = deviceName;
+        Serial.print(String(stdStr.c_str()));
+        Serial.print(" - RSSI : ");
+        Serial.println(rssi);
+    }
+}
+
 void tacg_modeSelector()
 {
     Serial.printf("\nMode = %d\n", play_mode);
@@ -242,7 +267,6 @@ void tacg_modeSelector()
     // bool halt = false;
     if (play_mode < 1)
     {
-
         holdtime_1, holdtime_2 = CAPICHE_DELAY, CAPICHE_DELAY;
         if (closestDeviceName.length() > 0 && closestRSSI > (RSSI_TH - RSSI_TOLERANCE))
         {
@@ -493,5 +517,6 @@ void loop()
     // }
 
     tacgBLEScanner();
-    tacg_modeSelector();
+    // tacgBLESearch();
+    // tacg_modeSelector();
 }
