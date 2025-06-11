@@ -516,7 +516,8 @@ void loop()
     //     myDevice = nullptr; // Reset the device object
     // }
 
-    tacgBLEScanner();
-    // tacgBLESearch();
-    // tacg_modeSelector();
+    // tacgBLEScanner();
+
+    tacgBLESearch();
+    tacg_modeSelector();
 }
