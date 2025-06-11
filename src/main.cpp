@@ -112,7 +112,7 @@ void setup()
 
     // Print the MAC address to the Serial Monitor
     Serial.println("ESP32 MAC Address: " + WiFi.macAddress());
-    setupDFP(30);
+    // setupDFP(30);
 
     setupNimBLEServer();
 
@@ -139,7 +139,7 @@ void loop()
         myData.soundStatus = 0;
     }
     if(myData.soundStatus){
-        player.play(WHICH_BEACON);
-        delay(2000);
+        // player.play(WHICH_BEACON);
+        // delay(2000);
     }
 }
