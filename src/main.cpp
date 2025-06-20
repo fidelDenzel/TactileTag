@@ -2,7 +2,7 @@
 #include <NimBLEDevice.h>
 #include "DFRobotDFPlayerMini.h"
 #include <math.h>
-#include <esp_now.h>
+// #include <esp_now.h>
 #include <WiFi.h>
 #include <cstring>
 #include <string>  // Include this if using std::string
@@ -56,66 +56,20 @@ int play_mode = 0;
 bool inBound = false;
 int idx_offset = SLIDE_IDX;
 
-typedef struct tracker_struct
-{
-    int id;
-    bool soundStatus;
-} tracker_struct;
-
-tracker_struct tracker;
-// tracker_struct tracker2;
-// tracker_struct tracker3;
-
-esp_now_peer_info_t peerInfo;
-
-// ESP-NOW peer MAC address (replace with your receiver's MAC address)
-// Slide beacon's MAC   : A0:DD:6C:AF:6C:64
-// Swing beacon's MAC   : 40:22:D8:08:3A:C0
-
-uint8_t peerMACAddress[2][6] = {
-
-    {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0},
-    {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
-};
-
-// uint8_t peerMACAddress[2][6] = {
-//     {0x30, 0x31, 0x32, 0x33, 0x34, 0x35},
-//     {0x61, 0x62, 0x63, 0x64, 0x65, 0x66},
-// };
-
-// REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
-uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
-uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
-// uint8_t broadcastAddress3[] = {0xFF, , , , , };
-
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
-{
-    char macStr[18];
-    Serial.print("Packet to: ");
-    // Copies the sender mac address to a string
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    Serial.print(macStr);
-    Serial.print(" send status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
-
+void setupDFP(int dfpVolume);
+void setupNimBLE(int bleInterval);
 struct Button
 {
     const uint8_t PIN;
     uint32_t numberKeyPresses;
     bool pressed;
 };
+Button button1 = {BUTT_PIN, 0, false}; // Variable for a custom made flag
 
-// Variable for a custom made flag
-Button button1 = {BUTT_PIN, 0, false};
-bool led_state;
+unsigned long button_time = 0; // variables to keep track of the timing of recent interrupts
+unsigned long last_button_time = 0; // variables to keep track of the timing of recent interrupts
 
-// variables to keep track of the timing of recent interrupts
-unsigned long button_time = 0;
-unsigned long last_button_time = 0;
-
-void IRAM_ATTR isr()
+void IRAM_ATTR isr(void)
 {
     button_time = millis();
     if (button_time - last_button_time > 250)
@@ -129,6 +83,114 @@ void IRAM_ATTR isr()
         last_button_time = button_time;
     }
 }
+bool led_state;
+void ESPNOWInit(void);
+void tacgBLESearch(void);
+void tacg_modeSelector(void);
+
+void setup()
+{
+    Serial.begin(115200);
+    Serial.printf("Target device : %d\n", targetDeviceCount);
+
+    setupDFP(30);
+
+    Serial.println("\nHalo TACG siap membantu!");
+    player.play(Hello_TACG_IDX);
+    delay(5000);
+
+    // Initialize BLE
+    setupNimBLE(100);
+
+    // Set buzzer pin as output
+    pinMode(buzzerPin, OUTPUT);
+    pinMode(button1.PIN, INPUT_PULLUP);
+    pinMode(LED_PIN, OUTPUT);
+    attachInterrupt(button1.PIN, isr, FALLING);
+}
+
+void loop()
+{
+    led_state ^= 1;
+    digitalWrite(LED_PIN, led_state);
+
+    // if (myDevice) {
+    //     Serial.println("Connecting to server...");
+    //     NimBLEClient* pClient = NimBLEDevice::createClient();
+
+    //     // Attempt to connect
+    //     if (pClient->connect(myDevice)) {
+    //         Serial.println("Connected to server");
+
+    //         // Access the service
+    //         NimBLERemoteService* pService = pClient->getService("1234");
+    //         if (pService) {
+    //             NimBLERemoteCharacteristic* pCharacteristic = pService->getCharacteristic("5678");
+    //             if (pCharacteristic) {
+    //                 Serial.print("Reading characteristic value: ");
+    //                 Serial.println(pCharacteristic->readValue().c_str());
+    //             } else {
+    //                 Serial.println("Characteristic not found!");
+    //             }
+    //         } else {
+    //             Serial.println("Service not found!");
+    //         }
+    //     } else {
+    //         Serial.println("Failed to connect to server");
+    //     }
+
+    //     myDevice = nullptr; // Reset the device object
+    // }
+
+    // tacgBLEScanner();
+
+    tacgBLESearch();
+    tacg_modeSelector();
+}
+
+// typedef struct tracker_struct
+// {
+//     int id;
+//     bool soundStatus;
+// } tracker_struct;
+
+// tracker_struct tracker;
+// // tracker_struct tracker2;
+// // tracker_struct tracker3;
+
+// esp_now_peer_info_t peerInfo;
+
+// // ESP-NOW peer MAC address (replace with your receiver's MAC address)
+// // Slide beacon's MAC   : A0:DD:6C:AF:6C:64
+// // Swing beacon's MAC   : 40:22:D8:08:3A:C0
+
+// uint8_t peerMACAddress[2][6] = {
+
+//     {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0},
+//     {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
+// };
+
+// // uint8_t peerMACAddress[2][6] = {
+// //     {0x30, 0x31, 0x32, 0x33, 0x34, 0x35},
+// //     {0x61, 0x62, 0x63, 0x64, 0x65, 0x66},
+// // };
+
+// // REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
+// uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
+// uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
+// // uint8_t broadcastAddress3[] = {0xFF, , , , , };
+
+// void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+// {
+//     char macStr[18];
+//     Serial.print("Packet to: ");
+//     // Copies the sender mac address to a string
+//     snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+//              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+//     Serial.print(macStr);
+//     Serial.print(" send status:\t");
+//     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+// }
 
 // Function to check if a device name matches any of the target names
 
@@ -157,49 +219,49 @@ int findIdx(std::string str)
     return -1;
 }
 
-void ESPNOWInit()
-{
-    WiFi.mode(WIFI_STA);
+// void ESPNOWInit()
+// {
+//     WiFi.mode(WIFI_STA);
 
-    if (esp_now_init() != ESP_OK)
-    {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
+//     if (esp_now_init() != ESP_OK)
+//     {
+//         Serial.println("Error initializing ESP-NOW");
+//         return;
+//     }
 
-    esp_now_register_send_cb(OnDataSent);
+//     esp_now_register_send_cb(OnDataSent);
 
-    // register peer
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
+//     // register peer
+//     peerInfo.channel = 0;
+//     peerInfo.encrypt = false;
 
-    for (int i = 0; i < targetDeviceCount; i++)
-    {
-        memcpy(peerInfo.peer_addr, peerMACAddress[i], 6);
-        if (esp_now_add_peer(&peerInfo) != ESP_OK)
-        {
-            Serial.println("Failed to add peer");
-            return;
-        }
-    }
-}
+//     for (int i = 0; i < targetDeviceCount; i++)
+//     {
+//         memcpy(peerInfo.peer_addr, peerMACAddress[i], 6);
+//         if (esp_now_add_peer(&peerInfo) != ESP_OK)
+//         {
+//             Serial.println("Failed to add peer");
+//             return;
+//         }
+//     }
+// }
 
-void ESPNOW_SendMsg(tracker_struct trackerFunct)
-{
-    esp_err_t result1 = esp_now_send(
-        peerMACAddress[findIdx(closestDeviceName)],
-        (uint8_t *)&trackerFunct,
-        sizeof(tracker_struct));
+// void ESPNOW_SendMsg(tracker_struct trackerFunct)
+// {
+//     esp_err_t result1 = esp_now_send(
+//         peerMACAddress[findIdx(closestDeviceName)],
+//         (uint8_t *)&trackerFunct,
+//         sizeof(tracker_struct));
 
-    if (result1 == ESP_OK)
-    {
-        Serial.println("Sent with success");
-    }
-    else
-    {
-        Serial.println("Error sending the data");
-    }
-}
+//     if (result1 == ESP_OK)
+//     {
+//         Serial.println("Sent with success");
+//     }
+//     else
+//     {
+//         Serial.println("Error sending the data");
+//     }
+// }
 
 void tacgBLESearch()
 {
@@ -272,40 +334,40 @@ void tacg_modeSelector()
         {
             inBound = true;
 
-            // No need to produce sound at beacon
-            tracker.id = findIdx(closestDeviceName);
-            tracker.soundStatus = 0;
-            // tracker2.id = 1;
-            // tracker2.soundStatus = 0;
-            ESPNOW_SendMsg(tracker);
+            // // No need to produce sound at beacon
+            // tracker.id = findIdx(closestDeviceName);
+            // tracker.soundStatus = 0;
+            // // tracker2.id = 1;
+            // // tracker2.soundStatus = 0;
+            // ESPNOW_SendMsg(tracker);
 
-            // esp_err_t result1 = esp_now_send(
-            //     peerMACAddress[findIdx(closestDeviceName)],
-            //     (uint8_t *)&tracker,
-            //     sizeof(tracker_struct));
+            // // esp_err_t result1 = esp_now_send(
+            // //     peerMACAddress[findIdx(closestDeviceName)],
+            // //     (uint8_t *)&tracker,
+            // //     sizeof(tracker_struct));
 
-            // if (result1 == ESP_OK)
-            // {
-            //     Serial.println("Sent with success");
-            // }
-            // else
-            // {
-            //     Serial.println("Error sending the data");
-            // }
+            // // if (result1 == ESP_OK)
+            // // {
+            // //     Serial.println("Sent with success");
+            // // }
+            // // else
+            // // {
+            // //     Serial.println("Error sending the data");
+            // // }
 
-            // esp_err_t result2 = esp_now_send(
-            //     peerMACAddress[1],
-            //     (uint8_t *)&tracker2,
-            //     sizeof(tracker_struct));
+            // // esp_err_t result2 = esp_now_send(
+            // //     peerMACAddress[1],
+            // //     (uint8_t *)&tracker2,
+            // //     sizeof(tracker_struct));
 
-            // if (result2 == ESP_OK)
-            // {
-            //     Serial.println("Sent with success");
-            // }
-            // else
-            // {
-            //     Serial.println("Error sending the data");
-            // }
+            // // if (result2 == ESP_OK)
+            // // {
+            // //     Serial.println("Sent with success");
+            // // }
+            // // else
+            // // {
+            // //     Serial.println("Error sending the data");
+            // // }
 
             Serial.printf("\nApakah anda di ");
             player.play(EnsureInside_IDX);
@@ -375,12 +437,12 @@ void tacg_modeSelector()
                 // player can remind themselves what equipment this is
                 else if (play_mode >= 3)
                 {
-                    tracker.id = 0;
-                    tracker.soundStatus = 2;
-                    // tracker2.id = 1;
-                    // tracker2.soundStatus = 2;
+                    // tracker.id = 0;
+                    // tracker.soundStatus = 2;
+                    // // tracker2.id = 1;
+                    // // tracker2.soundStatus = 2;
 
-                    ESPNOW_SendMsg(tracker);
+                    // ESPNOW_SendMsg(tracker);
 
                     Serial.printf("\nAnda di %s\n", closestBefore);
 
@@ -395,11 +457,11 @@ void tacg_modeSelector()
         else
         {
 
-            tracker.id = 0;
-            tracker.soundStatus = 1;
-            // tracker2.id = 2;
-            // tracker2.soundStatus = 1;
-            ESPNOW_SendMsg(tracker);
+            // tracker.id = 0;
+            // tracker.soundStatus = 1;
+            // // tracker2.id = 2;
+            // // tracker2.soundStatus = 1;
+            // ESPNOW_SendMsg(tracker);
 
             Serial.printf("\nSelamat datang di %s\n", closestBefore);
             player.play(Welcome_IDX);
@@ -460,64 +522,3 @@ void setupNimBLE(int bleInterval)
     pScan->setWindow(99);
 }
 
-void setup()
-{
-    Serial.begin(115200);
-    Serial.printf("Target device : %d\n", targetDeviceCount);
-
-    setupDFP(30);
-
-    Serial.println("\nHalo TACG siap membantu!");
-    player.play(Hello_TACG_IDX);
-    delay(5000);
-
-    // Initialize BLE
-    setupNimBLE(100);
-
-    // Set buzzer pin as output
-    pinMode(buzzerPin, OUTPUT);
-    pinMode(button1.PIN, INPUT_PULLUP);
-    pinMode(LED_PIN, OUTPUT);
-    attachInterrupt(button1.PIN, isr, FALLING);
-
-    ESPNOWInit();
-}
-
-void loop()
-{
-    led_state ^= 1;
-    digitalWrite(LED_PIN, led_state);
-
-    // if (myDevice) {
-    //     Serial.println("Connecting to server...");
-    //     NimBLEClient* pClient = NimBLEDevice::createClient();
-
-    //     // Attempt to connect
-    //     if (pClient->connect(myDevice)) {
-    //         Serial.println("Connected to server");
-
-    //         // Access the service
-    //         NimBLERemoteService* pService = pClient->getService("1234");
-    //         if (pService) {
-    //             NimBLERemoteCharacteristic* pCharacteristic = pService->getCharacteristic("5678");
-    //             if (pCharacteristic) {
-    //                 Serial.print("Reading characteristic value: ");
-    //                 Serial.println(pCharacteristic->readValue().c_str());
-    //             } else {
-    //                 Serial.println("Characteristic not found!");
-    //             }
-    //         } else {
-    //             Serial.println("Service not found!");
-    //         }
-    //     } else {
-    //         Serial.println("Failed to connect to server");
-    //     }
-
-    //     myDevice = nullptr; // Reset the device object
-    // }
-
-    // tacgBLEScanner();
-
-    tacgBLESearch();
-    tacg_modeSelector();
-}
