@@ -42,6 +42,7 @@ int targetDeviceCount = sizeof(targetDeviceNames) / sizeof(targetDeviceNames[0])
 DFRobotDFPlayerMini player; // Create the Player object
 
 int scanTime = 1; // Time for scanning BLE devices (in seconds)
+
 // BLEScan *pBLEScan; // To use the non NimBLE library for BLE feature
 NimBLEScan *pScan; // Use NimBLE.h library for less Flash Memory Usage
 
@@ -113,86 +114,11 @@ void loop()
 {
     led_state ^= 1;
     digitalWrite(LED_PIN, led_state);
-
-    // if (myDevice) {
-    //     Serial.println("Connecting to server...");
-    //     NimBLEClient* pClient = NimBLEDevice::createClient();
-
-    //     // Attempt to connect
-    //     if (pClient->connect(myDevice)) {
-    //         Serial.println("Connected to server");
-
-    //         // Access the service
-    //         NimBLERemoteService* pService = pClient->getService("1234");
-    //         if (pService) {
-    //             NimBLERemoteCharacteristic* pCharacteristic = pService->getCharacteristic("5678");
-    //             if (pCharacteristic) {
-    //                 Serial.print("Reading characteristic value: ");
-    //                 Serial.println(pCharacteristic->readValue().c_str());
-    //             } else {
-    //                 Serial.println("Characteristic not found!");
-    //             }
-    //         } else {
-    //             Serial.println("Service not found!");
-    //         }
-    //     } else {
-    //         Serial.println("Failed to connect to server");
-    //     }
-
-    //     myDevice = nullptr; // Reset the device object
-    // }
-
     // tacgBLEScanner();
 
     tacgBLESearch();
     tacg_modeSelector();
 }
-
-// typedef struct tracker_struct
-// {
-//     int id;
-//     bool soundStatus;
-// } tracker_struct;
-
-// tracker_struct tracker;
-// // tracker_struct tracker2;
-// // tracker_struct tracker3;
-
-// esp_now_peer_info_t peerInfo;
-
-// // ESP-NOW peer MAC address (replace with your receiver's MAC address)
-// // Slide beacon's MAC   : A0:DD:6C:AF:6C:64
-// // Swing beacon's MAC   : 40:22:D8:08:3A:C0
-
-// uint8_t peerMACAddress[2][6] = {
-
-//     {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0},
-//     {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
-// };
-
-// // uint8_t peerMACAddress[2][6] = {
-// //     {0x30, 0x31, 0x32, 0x33, 0x34, 0x35},
-// //     {0x61, 0x62, 0x63, 0x64, 0x65, 0x66},
-// // };
-
-// // REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
-// uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
-// uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
-// // uint8_t broadcastAddress3[] = {0xFF, , , , , };
-
-// void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
-// {
-//     char macStr[18];
-//     Serial.print("Packet to: ");
-//     // Copies the sender mac address to a string
-//     snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-//              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-//     Serial.print(macStr);
-//     Serial.print(" send status:\t");
-//     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-// }
-
-// Function to check if a device name matches any of the target names
 
 bool isTargetDevice(std::string deviceName)
 {
@@ -219,49 +145,6 @@ int findIdx(std::string str)
     return -1;
 }
 
-// void ESPNOWInit()
-// {
-//     WiFi.mode(WIFI_STA);
-
-//     if (esp_now_init() != ESP_OK)
-//     {
-//         Serial.println("Error initializing ESP-NOW");
-//         return;
-//     }
-
-//     esp_now_register_send_cb(OnDataSent);
-
-//     // register peer
-//     peerInfo.channel = 0;
-//     peerInfo.encrypt = false;
-
-//     for (int i = 0; i < targetDeviceCount; i++)
-//     {
-//         memcpy(peerInfo.peer_addr, peerMACAddress[i], 6);
-//         if (esp_now_add_peer(&peerInfo) != ESP_OK)
-//         {
-//             Serial.println("Failed to add peer");
-//             return;
-//         }
-//     }
-// }
-
-// void ESPNOW_SendMsg(tracker_struct trackerFunct)
-// {
-//     esp_err_t result1 = esp_now_send(
-//         peerMACAddress[findIdx(closestDeviceName)],
-//         (uint8_t *)&trackerFunct,
-//         sizeof(tracker_struct));
-
-//     if (result1 == ESP_OK)
-//     {
-//         Serial.println("Sent with success");
-//     }
-//     else
-//     {
-//         Serial.println("Error sending the data");
-//     }
-// }
 
 void tacgBLESearch()
 {
@@ -522,3 +405,92 @@ void setupNimBLE(int bleInterval)
     pScan->setWindow(99);
 }
 
+// typedef struct tracker_struct
+// {
+//     int id;
+//     bool soundStatus;
+// } tracker_struct;
+
+// tracker_struct tracker;
+// // tracker_struct tracker2;
+// // tracker_struct tracker3;
+
+// esp_now_peer_info_t peerInfo;
+
+// // ESP-NOW peer MAC address (replace with your receiver's MAC address)
+// // Slide beacon's MAC   : A0:DD:6C:AF:6C:64
+// // Swing beacon's MAC   : 40:22:D8:08:3A:C0
+
+// uint8_t peerMACAddress[2][6] = {
+
+//     {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0},
+//     {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64},
+// };
+
+// // uint8_t peerMACAddress[2][6] = {
+// //     {0x30, 0x31, 0x32, 0x33, 0x34, 0x35},
+// //     {0x61, 0x62, 0x63, 0x64, 0x65, 0x66},
+// // };
+
+// // REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
+// uint8_t broadcastAddress1[] = {0xA0, 0xDD, 0x6C, 0xAF, 0x6C, 0x64};
+// uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x08, 0x3A, 0xC0};
+// // uint8_t broadcastAddress3[] = {0xFF, , , , , };
+
+// void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+// {
+//     char macStr[18];
+//     Serial.print("Packet to: ");
+//     // Copies the sender mac address to a string
+//     snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+//              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+//     Serial.print(macStr);
+//     Serial.print(" send status:\t");
+//     Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+// }
+
+// Function to check if a device name matches any of the target names
+
+// void ESPNOWInit()
+// {
+//     WiFi.mode(WIFI_STA);
+
+//     if (esp_now_init() != ESP_OK)
+//     {
+//         Serial.println("Error initializing ESP-NOW");
+//         return;
+//     }
+
+//     esp_now_register_send_cb(OnDataSent);
+
+//     // register peer
+//     peerInfo.channel = 0;
+//     peerInfo.encrypt = false;
+
+//     for (int i = 0; i < targetDeviceCount; i++)
+//     {
+//         memcpy(peerInfo.peer_addr, peerMACAddress[i], 6);
+//         if (esp_now_add_peer(&peerInfo) != ESP_OK)
+//         {
+//             Serial.println("Failed to add peer");
+//             return;
+//         }
+//     }
+// }
+
+// void ESPNOW_SendMsg(tracker_struct trackerFunct)
+// {
+//     esp_err_t result1 = esp_now_send(
+//         peerMACAddress[findIdx(closestDeviceName)],
+//         (uint8_t *)&trackerFunct,
+//         sizeof(tracker_struct));
+
+//     if (result1 == ESP_OK)
+//     {
+//         Serial.println("Sent with success");
+//     }
+//     else
+//     {
+//         Serial.println("Error sending the data");
+//     }
+// }
